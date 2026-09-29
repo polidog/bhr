@@ -42,3 +42,6 @@ tracking_params = [
   "utm_*", "mc_*", "fbclid", "gclid", "ref", "ref_src", "ref_url",
   "share", "spm", "si", "cmpid",
 ]
+
+# jev で検索したとき、点（0〜1）がこれ未満のページは出さない
+min_score = 0.7

@@ -42,12 +42,8 @@ bhr list --json --since 2026-09-01 | jq '[.[] | .links |= map(select(.title | te
 ```
 
 For meaning-based search use `--ask` (see [Semantic search](#semantic-search)). Each day is
-sorted by relevance, and every JSON link gets a `score` (0–1). Pick your own cutoff downstream:
-
-```sh
-bhr list --json --since 2026-09-01 --ask "Rust memory management" \
-  | jq '[.[].links[] | select(.score > 0.4)]'
-```
+sorted by relevance, and every JSON link gets a `score` (0–1). Pages scoring below `min_score`
+in the config (default `0.7`) are dropped, in both `--ask` and the TUI's `?`.
 
 Piping `bhr list` into the `jev` CLI does not work for this: `jev` treats all of stdin as one
 state and returns one answer, not a score per page.

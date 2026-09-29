@@ -82,6 +82,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                     continue;
                 };
                 let mut scored: Vec<(Link, f64)> = links.iter().cloned().zip(ask::relevance(&links, query)?).collect();
+                scored.retain(|(_, s)| *s >= cfg.min_score);
+                if scored.is_empty() {
+                    continue;
+                }
                 scored.sort_by(|a, b| b.1.total_cmp(&a.1));
                 let (links, scores) = scored.into_iter().unzip();
                 days.push((date, links, Some(scores)));

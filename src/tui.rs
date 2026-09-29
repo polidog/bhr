@@ -63,7 +63,7 @@ impl App {
     }
 
     /// いま開いている日のページを jev に採点させ、合う順に並べ替える。
-    fn rank(&mut self) {
+    fn rank(&mut self, min_score: f64) {
         let Some(i) = self.day.selected().filter(|&i| i < self.days.len()) else { return };
         let links = &mut self.days[i].1;
         match ask::relevance(links, &self.ask) {
@@ -72,10 +72,13 @@ impl App {
                     self.scores.insert(link.url.clone(), *s);
                 }
                 let score = |l: &Link| self.scores.get(&l.url).copied().unwrap_or(0.0);
+                let before = links.len();
+                links.retain(|l| score(l) >= min_score);
                 links.sort_by(|a, b| score(b).total_cmp(&score(a)));
-                self.link.select(Some(0));
-                self.on_links = true;
-                self.status = format!("jev: 「{}」に合う順", self.ask);
+                let hits = links.len();
+                self.link.select((hits > 0).then_some(0));
+                self.on_links = hits > 0;
+                self.status = format!("jev: 「{}」に合う順  {hits}/{before} 件（{min_score} 以上、Esc で戻す）", self.ask);
             }
             Err(e) => self.status = format!("jev に聞けない: {e}"),
         }
@@ -210,7 +213,7 @@ pub fn run(mut cfg: Config, path: &Path, days: Days) -> Result<(), Box<dyn Error
                     // ponytail: 待っている間は画面が止まる。遅くて困るならスレッドに出す
                     app.status = format!("jev に聞いている…（{} ページ）", app.links().len());
                     term.draw(|f| draw(f, &mut app))?;
-                    app.rank();
+                    app.rank(cfg.min_score);
                 }
                 continue;
             }

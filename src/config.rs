@@ -19,6 +19,13 @@ pub struct Config {
     pub deny: Vec<String>,
     #[serde(default)]
     pub tracking_params: Vec<String>,
+    /// jev の点がこれ未満のページは出さない
+    #[serde(default = "min_score")]
+    pub min_score: f64,
+}
+
+fn min_score() -> f64 {
+    0.7
 }
 
 fn home() -> PathBuf {
