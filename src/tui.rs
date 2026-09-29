@@ -193,6 +193,15 @@ pub fn run(mut cfg: Config, path: &Path, days: Days) -> Result<(), Box<dyn Error
                         buf.pop();
                     }
                     KeyCode::Char(c) => buf.push(c),
+                    // 打ちながらでも動けるように（j/k は文字として入るので矢印で）
+                    KeyCode::Down | KeyCode::Up => {
+                        app.step(key.code == KeyCode::Down);
+                        continue;
+                    }
+                    KeyCode::Tab => {
+                        app.on_links = !app.on_links;
+                        continue;
+                    }
                     _ => continue,
                 }
                 if filter {

@@ -58,7 +58,7 @@ state and returns one answer, not a score per page.
 |---|---|
 | `j` / `k`, `↓` / `↑` | move |
 | `h` / `l`, `Tab` | switch between days and pages |
-| `/` | filter by text (all words must appear in title, host or URL; `Esc` clears) |
+| `/` | filter by text (all words must appear in title, host or URL; `Esc` clears). `↑`/`↓`/`Tab` still move while typing |
 | `?` | semantic search with [jev](https://github.com/polidog/jev): ranks the current day's pages by relevance |
 | `Enter` | open the page in the browser (`xdg-open` / `open`) |
 | `x` | add the selected page's host to `deny` (written to the config) |
