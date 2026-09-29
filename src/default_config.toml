@@ -1,0 +1,44 @@
+# bhr の設定
+
+# Chrome のユーザーデータの場所。空なら OS の既定
+# （Linux: ~/.config/google-chrome, macOS: ~/Library/Application Support/Google/Chrome）
+chrome_root = ""
+
+# 読むプロファイル。空なら Default と Profile N を全部
+profiles = []
+
+# 拾うホスト。空なら deny 以外は全部拾う。
+# 指定するとここに載っているものだけ拾う（サブドメインも含む）
+allow = []
+
+# 捨てるホスト。サブドメインごと落とす（"rakuten.co.jp" で item.rakuten.co.jp も）
+# localhost・IP アドレス・auth./login. などの認証画面は常に落とす
+# TUI で x を押すとここに足される
+deny = [
+  # 作業の画面
+  "github.com", "gist.github.com",
+  "accounts.google.com", "mail.google.com", "calendar.google.com",
+  "docs.google.com", "drive.google.com", "meet.google.com",
+  "notion.so", "slack.com", "claude.ai", "chatgpt.com", "gemini.google.com",
+  "console.aws.amazon.com", "console.cloud.google.com",
+  "dash.cloudflare.com", "vercel.com",
+  # SNS のタイムライン
+  "x.com", "twitter.com", "bsky.app", "facebook.com", "instagram.com",
+  "discord.com", "threads.net", "reddit.com",
+  # 短縮 URL
+  "t.co", "bit.ly", "amzn.to", "goo.gl",
+  # 検索
+  "google.com", "google.co.jp", "bing.com", "duckduckgo.com",
+  "search.yahoo.co.jp", "search.brave.com",
+  # 買い物・動画
+  "amazon.co.jp", "amazon.com", "rakuten.co.jp", "mercari.com",
+  "youtube.com", "youtu.be", "nicovideo.jp", "netflix.com",
+  # 画像・CDN
+  "pbs.twimg.com", "i.imgur.com", "imgur.com",
+]
+
+# URL から落とす問い合わせ。末尾 * は前方一致
+tracking_params = [
+  "utm_*", "mc_*", "fbclid", "gclid", "ref", "ref_src", "ref_url",
+  "share", "spm", "si", "cmpid",
+]
