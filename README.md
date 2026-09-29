@@ -33,9 +33,24 @@ bhr config                         # print the config path
 |---|---|
 | `j` / `k`, `↓` / `↑` | move |
 | `h` / `l`, `Tab` | switch between days and pages |
+| `/` | filter by text (all words must appear in title, host or URL; `Esc` clears) |
+| `?` | semantic search with [jev](https://github.com/polidog/jev): ranks the current day's pages by relevance |
 | `Enter` | open the page in the browser (`xdg-open` / `open`) |
 | `x` | add the selected page's host to `deny` (written to the config) |
 | `q` / `Esc` | quit |
+
+### Semantic search (`?`)
+
+Each page on the selected day (title, host, URL) is sent to Jev with a yes/no
+question — "is this what someone searching for *query* wants?" — and the list is
+sorted by that probability. Combine with `/` to narrow the pages first.
+
+One request per page, 8 in parallel; the TUI waits until all answers are back.
+The provider follows the `jev` CLI: `JEV_PROVIDER` = `typesafe` (default,
+`TYPESAFE_API_KEY`), `cloudflare` (`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`)
+or `vercel` (`AI_GATEWAY_API_KEY`).
+
+Note: this sends those page titles and URLs to the provider.
 
 ## Config
 

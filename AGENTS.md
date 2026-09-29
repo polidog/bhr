@@ -9,6 +9,7 @@ per-day list of pages read. Ported from `../kyoten/bin/reading.ts`, but standalo
 ```sh
 cargo build
 cargo test            # filter tests live in src/config.rs
+cargo test -- --ignored   # hits the real Jev API (needs TYPESAFE_API_KEY); uses made-up pages, never real history
 cargo clippy
 cargo install --path . --force   # reinstall ~/.cargo/bin/bhr
 ```
@@ -21,7 +22,8 @@ When testing against real history, pass `--config <scratch path>` so the user's
 - `src/main.rs` — clap CLI: `tui` (default), `report` (alias `list`), `hosts`, `config`; global `--config/--since/--until/--json`
 - `src/config.rs` — `Config` (TOML), `normalize()` (URL cleanup + all filtering), `allowed()`, `add_deny()` (edits TOML with `toml_edit` to keep comments)
 - `src/history.rs` — find profiles, copy `History` to temp, query SQLite, dedupe per day, Markdown `render()`
-- `src/tui.rs` — ratatui two-pane UI (days / pages)
+- `src/tui.rs` — ratatui two-pane UI (days / pages); `/` text filter, `?` semantic ranking
+- `src/ask.rs` — `relevance()`: one Jev `noul` request per page via the `jev` crate (git dep on polidog/jev, pinned rev), provider from `JEV_PROVIDER`
 - `src/default_config.toml` — written to the config path on first run; also used by tests
 
 ## Rules
