@@ -87,16 +87,25 @@ pub fn load(cfg: &Config, since: Option<&str>, until: Option<&str>) -> Result<Da
         .collect())
 }
 
-pub fn render(date: &str, links: &[Link]) -> String {
+/// `scores` があれば合う順の1本の並び（ホストで分けない）、無ければホストごとに分ける。
+pub fn render(date: &str, links: &[Link], scores: Option<&[f64]>) -> String {
     let mut out = format!("# {date} に開いたページ\n");
+    if scores.is_some() {
+        out.push('\n');
+    }
     let mut host = "";
-    for link in links {
-        if link.host != host {
-            host = &link.host;
-            out.push_str(&format!("\n## {host}\n\n"));
-        }
+    for (i, link) in links.iter().enumerate() {
         let label: String = link.title.replace(['[', ']'], "").split_whitespace().collect::<Vec<_>>().join(" ");
-        out.push_str(&format!("- [{label}]({})\n", link.url));
+        match scores {
+            Some(s) => out.push_str(&format!("- {:.2} [{label}]({}) — {}\n", s[i], link.url, link.host)),
+            None => {
+                if link.host != host {
+                    host = &link.host;
+                    out.push_str(&format!("\n## {host}\n\n"));
+                }
+                out.push_str(&format!("- [{label}]({})\n", link.url));
+            }
+        }
     }
     out
 }

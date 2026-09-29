@@ -19,7 +19,7 @@ When testing against real history, pass `--config <scratch path>` so the user's
 
 ## Layout
 
-- `src/main.rs` — clap CLI: `tui` (default), `report` (alias `list`), `hosts`, `config`; global `--config/--since/--until/--json`
+- `src/main.rs` — clap CLI: `tui` (default), `report` (alias `list`), `hosts`, `config`; global `--config/--since/--until/--json`; `report --ask` ranks with Jev and adds `score` to JSON
 - `src/config.rs` — `Config` (TOML), `normalize()` (URL cleanup + all filtering), `allowed()`, `add_deny()` (edits TOML with `toml_edit` to keep comments)
 - `src/history.rs` — find profiles, copy `History` to temp, query SQLite, dedupe per day, Markdown `render()`
 - `src/tui.rs` — ratatui two-pane UI (days / pages); `/` text filter, `?` semantic ranking

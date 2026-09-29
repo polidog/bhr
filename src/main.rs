@@ -9,6 +9,8 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 
+use history::Link;
+
 /// Chrome の履歴から、読んだページを日ごとに出す
 #[derive(Parser)]
 struct Cli {
@@ -38,6 +40,9 @@ enum Cmd {
         /// 1日だけ（YYYY-MM-DD）
         #[arg(long, value_parser = date)]
         day: Option<String>,
+        /// jev で意味の近さを採点し、日ごとに合う順に並べる（1ページ1リクエスト）
+        #[arg(long)]
+        ask: Option<String>,
     },
     /// 拾ったホストを件数順に出す（deny に足すものを探す用）
     Hosts {
@@ -66,16 +71,36 @@ fn main() -> Result<(), Box<dyn Error>> {
             let days = history::load(&cfg, since.as_deref(), until.as_deref())?;
             tui::run(cfg, &path, days)?;
         }
-        Cmd::Report { day } => {
+        Cmd::Report { day, ask } => {
             if day.is_some() {
                 (since, until) = (day.clone(), day);
             }
-            let days = history::load(&cfg, since.as_deref(), until.as_deref())?;
+            let mut days: Vec<(String, Vec<Link>, Option<Vec<f64>>)> = Vec::new();
+            for (date, links) in history::load(&cfg, since.as_deref(), until.as_deref())? {
+                let Some(query) = &ask else {
+                    days.push((date, links, None));
+                    continue;
+                };
+                let mut scored: Vec<(Link, f64)> = links.iter().cloned().zip(ask::relevance(&links, query)?).collect();
+                scored.sort_by(|a, b| b.1.total_cmp(&a.1));
+                let (links, scores) = scored.into_iter().unzip();
+                days.push((date, links, Some(scores)));
+            }
             if cli.json {
-                let out: Vec<_> = days.iter().map(|(date, links)| serde_json::json!({ "date": date, "links": links })).collect();
+                let mut out = Vec::new();
+                for (date, links, scores) in &days {
+                    let mut links = serde_json::to_value(links)?;
+                    if let (Some(scores), Some(links)) = (scores, links.as_array_mut()) {
+                        for (link, s) in links.iter_mut().zip(scores) {
+                            link["score"] = serde_json::json!(s);
+                        }
+                    }
+                    out.push(serde_json::json!({ "date": date, "links": links }));
+                }
                 println!("{}", serde_json::to_string_pretty(&out)?);
             } else {
-                let pages: Vec<String> = days.iter().map(|(d, links)| history::render(d, links)).collect();
+                let pages: Vec<String> =
+                    days.iter().map(|(d, links, scores)| history::render(d, links, scores.as_deref())).collect();
                 print!("{}", pages.join("\n"));
             }
         }
