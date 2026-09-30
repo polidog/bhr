@@ -44,6 +44,12 @@ enum Cmd {
         #[arg(long)]
         ask: Option<String>,
     },
+    /// 日ごとに検索した語を出す（Markdown / --json）
+    Searches {
+        /// 1日だけ（YYYY-MM-DD）
+        #[arg(long, value_parser = date)]
+        day: Option<String>,
+    },
     /// 拾ったホストを件数順に出す（deny に足すものを探す用）
     Hosts {
         #[arg(long, default_value_t = 50)]
@@ -69,7 +75,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         Cmd::Config => println!("{}", path.display()),
         Cmd::Tui => {
             let days = history::load(&cfg, since.as_deref(), until.as_deref())?;
-            tui::run(cfg, &path, days)?;
+            let searches = history::searches(&cfg, since.as_deref(), until.as_deref())?;
+            tui::run(cfg, &path, days, searches)?;
         }
         Cmd::Report { day, ask } => {
             if day.is_some() {
@@ -105,6 +112,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             } else {
                 let pages: Vec<String> =
                     days.iter().map(|(d, links, scores)| history::render(d, links, scores.as_deref())).collect();
+                print!("{}", pages.join("\n"));
+            }
+        }
+        Cmd::Searches { day } => {
+            if day.is_some() {
+                (since, until) = (day.clone(), day);
+            }
+            let days = history::searches(&cfg, since.as_deref(), until.as_deref())?;
+            if cli.json {
+                let out: Vec<_> =
+                    days.iter().map(|(d, s)| serde_json::json!({ "date": d, "searches": s })).collect();
+                println!("{}", serde_json::to_string_pretty(&out)?);
+            } else {
+                let pages: Vec<String> = days.iter().map(|(d, s)| history::render_searches(d, s)).collect();
                 print!("{}", pages.join("\n"));
             }
         }

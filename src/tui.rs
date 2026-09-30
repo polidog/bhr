@@ -12,7 +12,7 @@ use ratatui::widgets::{Block, List, ListState, Paragraph};
 
 use crate::ask;
 use crate::config::{self, Config};
-use crate::history::{Days, Link};
+use crate::history::{Days, Link, Searches};
 
 #[derive(PartialEq)]
 enum Input {
@@ -46,6 +46,8 @@ struct App {
     link: ListState,
     on_links: bool,
     status: String,
+    /// 日付 → 検索した語。選んだ月・日のぶんを右下に出す（絞り込みは効かせない）
+    searches: Searches,
 }
 
 /// 空白で区切った語がすべて、題・ホスト・URL のどこかに入っているか（大文字小文字は見ない）
@@ -168,6 +170,37 @@ fn open(url: &str) -> std::io::Result<()> {
 fn draw(f: &mut Frame, app: &mut App) {
     let [main, foot] = Layout::vertical([Constraint::Min(1), Constraint::Length(1)]).areas(f.area());
     let [left, right] = Layout::horizontal([Constraint::Length(20), Constraint::Min(1)]).areas(main);
+    let key = app.key();
+    let month = app.on_month();
+    // 新しい日から。月のときは日付を頭に付ける
+    let terms: Vec<Line> = app
+        .searches
+        .iter()
+        .rev()
+        .filter(|(d, _)| !key.is_empty() && d.starts_with(&key))
+        .flat_map(|(d, searches)| {
+            searches.iter().map(move |s| {
+                let mut spans = Vec::new();
+                if month {
+                    spans.push(Span::styled(format!("{} ", &d[5..]), Style::default().fg(Color::Cyan)));
+                }
+                spans.push(Span::raw(s.term.clone()));
+                // 開いたページはホストだけ（1 行に収める）
+                if !s.links.is_empty() {
+                    let hosts: Vec<&str> = s.links.iter().map(|l| l.host.as_str()).collect();
+                    spans.push(Span::styled(format!("  → {}", hosts.join(", ")), Style::default().fg(Color::Yellow)));
+                }
+                Line::from(spans)
+            })
+        })
+        .collect();
+    // ponytail: 下の枠は動かせず、10 行を超えたぶんは見えない。足りなければ枠にカーソルを持たせる
+    let [right, below] =
+        Layout::vertical([Constraint::Min(1), Constraint::Length((terms.len() as u16).min(8) + 2)]).areas(right);
+    f.render_widget(
+        Paragraph::new(terms).block(Block::bordered().title("検索した語").border_style(Style::default().fg(Color::DarkGray))),
+        below,
+    );
     let focus = |on: bool| Style::default().fg(if on { Color::Cyan } else { Color::DarkGray });
     let hl = Style::default().add_modifier(Modifier::REVERSED);
 
@@ -185,7 +218,6 @@ fn draw(f: &mut Frame, app: &mut App) {
     .highlight_style(hl);
     f.render_stateful_widget(rows, left, &mut app.row);
 
-    let month = app.on_month();
     let links = List::new(app.view.iter().map(|(d, l)| {
         let mut spans = Vec::new();
         if month {
@@ -216,7 +248,12 @@ fn draw(f: &mut Frame, app: &mut App) {
     f.render_widget(Paragraph::new(text).style(Style::default().fg(Color::DarkGray)), foot);
 }
 
-pub fn run(mut cfg: Config, path: &Path, days: Days) -> Result<(), Box<dyn Error>> {
+pub fn run(
+    mut cfg: Config,
+    path: &Path,
+    days: Days,
+    searches: Searches,
+) -> Result<(), Box<dyn Error>> {
     let mut app = App {
         all: days.into_iter().rev().collect(),
         days: Vec::new(),
@@ -229,6 +266,7 @@ pub fn run(mut cfg: Config, path: &Path, days: Days) -> Result<(), Box<dyn Error
         row: ListState::default(),
         link: ListState::default(),
         on_links: false,
+        searches,
         status: "j/k 移動  h/l 切替  / 検索  ? jev で検索  Enter 開く  x このホストを除外  q 終了".into(),
     };
     app.refilter();
