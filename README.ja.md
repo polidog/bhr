@@ -12,7 +12,7 @@ Chromium 系のブラウザ（Brave, Edge, Vivaldi, Arc）も、`chrome_root` �
 ## インストール
 
 ```sh
-cargo install --git https://github.com/polidog/bhr
+cargo install bhr
 # clone したものからなら
 cargo install --path .
 ```

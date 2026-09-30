@@ -12,7 +12,7 @@ pointing `chrome_root` at their profile directory.
 ## Install
 
 ```sh
-cargo install --git https://github.com/polidog/bhr
+cargo install bhr
 # or, from a clone
 cargo install --path .
 ```
