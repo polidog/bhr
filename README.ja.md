@@ -25,6 +25,8 @@ bhr list --day 2026-09-28          # 1日ぶんを Markdown で（`list` は `re
 bhr list --since 2026-09-01        # 期間で（--until も使えます）
 bhr list --json --since 2026-09-01 # [{"date", "links": [{"host", "title", "url"}]}]
 bhr list --since 2026-09-01 --ask "Rust のメモリ管理"  # jev で日ごとに合う順に並べる
+bhr searches --day 2026-09-28      # その日に検索した語と、検索結果から開いたページ
+bhr searches --json                # [{"date", "searches": [{"term", "links": [{"host", "title", "url"}]}]}]
 bhr hosts --top 50                 # ホストを件数順に（除外するものを探す用）
 bhr hosts --json                   # [{"host", "count"}]
 bhr config                         # 設定ファイルの場所を出す
@@ -48,6 +50,17 @@ TUI の `?` も同じです。
 
 `bhr list` の出力を `jev` の CLI にパイプで渡しても、この用途には使えません。`jev` は標準入力を
 丸ごと1つの状態として受け取り、答えを1つ返すだけなので、ページごとの点数にはなりません。
+
+### 検索した語
+
+`searches` は検索窓に打った語（Chrome の `keyword_search_terms`）を、日ごとに、はじめて打った順に
+1語1回で出します。語の下には、その検索結果の画面から開いたページが並びます（`from_visit` を
+1段だけたどるので、リダイレクトを挟んだページは取りこぼすことがあります）。
+語そのものは除外しませんが、開いたページには `list` と同じ除外が効くので、`deny` にあるホスト
+（Amazon など）やトップページへのクリックは出ません。
+
+TUI では、選んでいる月・日の検索語と、そこから開いたホストをページ一覧の下の枠に出します
+（8行まで。スクロールはできません）。
 
 ### TUI のキー
 

@@ -25,6 +25,8 @@ bhr list --day 2026-09-28          # one day as Markdown (`list` is an alias of 
 bhr list --since 2026-09-01        # a range (--until also works)
 bhr list --json --since 2026-09-01 # [{"date", "links": [{"host", "title", "url"}]}]
 bhr list --since 2026-09-01 --ask "Rust memory management"  # rank each day's pages with Jev
+bhr searches --day 2026-09-28      # what you searched that day, and the pages opened from the results
+bhr searches --json                # [{"date", "searches": [{"term", "links": [{"host", "title", "url"}]}]}]
 bhr hosts --top 50                 # hosts by count — find what to deny
 bhr hosts --json                   # [{"host", "count"}]
 bhr config                         # print the config path
@@ -47,6 +49,17 @@ in the config (default `0.7`) are dropped, in both `--ask` and the TUI's `?`.
 
 Piping `bhr list` into the `jev` CLI does not work for this: `jev` treats all of stdin as one
 state and returns one answer, not a score per page.
+
+### Search terms
+
+`searches` reads what you typed into the search box (Chrome's `keyword_search_terms`), once per
+term per day, in the order you first searched. Under each term are the pages opened from its
+results page (one hop along `from_visit`, so a page reached through a redirect can be missed).
+The terms themselves are not filtered, but those pages go through the same filters as `list`,
+so clicks to denied hosts (Amazon, say) and top pages do not show.
+
+The TUI shows the selected month's or day's terms in a pane under the pages, with the hosts
+opened from each (up to 8 lines, no scrolling).
 
 ### TUI keys
 
