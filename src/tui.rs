@@ -23,16 +23,26 @@ enum Input {
     Ask,
 }
 
+/// 左の行。月の行はその月ぜんぶ、日の行はその日だけを右に出す
+enum Row {
+    Month(String),
+    Day(usize),
+}
+
 struct App {
     /// 除外だけ効いた全部。`days` はこれを検索語で絞ったもの
     all: Vec<(String, Vec<Link>)>,
     days: Vec<(String, Vec<Link>)>,
+    /// 左に並ぶ行。日が出るのはカーソルのある月だけ
+    rows: Vec<Row>,
+    /// 右に並ぶ（日付, ページ）。選んだ行から作り、jev はこれを並べ替える
+    view: Vec<(String, Link)>,
     query: String,
     ask: String,
     input: Input,
     /// URL → jev が付けた「検索に合う」確率
     scores: HashMap<String, f64>,
-    day: ListState,
+    row: ListState,
     link: ListState,
     on_links: bool,
     status: String,
@@ -55,27 +65,70 @@ impl App {
             .collect();
         // 並びが元に戻るので、jev の点も捨てる
         self.scores.clear();
-        let (d, i) = (self.day.selected().unwrap_or(0), self.link.selected().unwrap_or(0));
-        self.select_day(d);
-        if !self.links().is_empty() {
-            self.link.select(Some(i.min(self.links().len() - 1)));
+        let i = self.link.selected().unwrap_or(0);
+        self.select(&self.key());
+        if !self.view.is_empty() {
+            self.link.select(Some(i.min(self.view.len() - 1)));
         }
     }
 
-    /// いま開いている日のページを jev に採点させ、合う順に並べ替える。
+    fn label(&self, row: &Row) -> String {
+        match row {
+            Row::Month(m) => m.clone(),
+            Row::Day(i) => self.days[*i].0.clone(),
+        }
+    }
+
+    /// 選んでいる行の月（YYYY-MM）か日（YYYY-MM-DD）
+    fn key(&self) -> String {
+        self.row.selected().and_then(|i| self.rows.get(i)).map_or(String::new(), |r| self.label(r))
+    }
+
+    fn on_month(&self) -> bool {
+        matches!(self.row.selected().and_then(|i| self.rows.get(i)), Some(Row::Month(_)))
+    }
+
+    /// `key`（月か日）の行を選び、その月だけ日を開いて並べ直す。無くなっていたらいちばん新しい日へ
+    fn select(&mut self, key: &str) {
+        let key = match self.days.first() {
+            Some(_) if !key.is_empty() && self.days.iter().any(|(d, _)| d.starts_with(key)) => key.to_string(),
+            Some((d, _)) => d.clone(),
+            None => String::new(),
+        };
+        let open = &key[..key.len().min(7)];
+        self.rows.clear();
+        for (i, (d, _)) in self.days.iter().enumerate() {
+            if i == 0 || d[..7] != self.days[i - 1].0[..7] {
+                self.rows.push(Row::Month(d[..7].to_string()));
+            }
+            if &d[..7] == open {
+                self.rows.push(Row::Day(i));
+            }
+        }
+        let at = self.rows.iter().position(|r| self.label(r) == key).unwrap_or(0);
+        self.row.select((!self.rows.is_empty()).then_some(at));
+        self.view = self
+            .days
+            .iter()
+            .filter(|(d, _)| d.starts_with(&key))
+            .flat_map(|(d, links)| links.iter().map(move |l| (d.clone(), l.clone())))
+            .collect();
+        self.link.select((!self.view.is_empty()).then_some(0));
+    }
+
+    /// 右に出ているページを jev に採点させ、合う順に並べ替える。
     fn rank(&mut self, min_score: f64) {
-        let Some(i) = self.day.selected().filter(|&i| i < self.days.len()) else { return };
-        let links = &mut self.days[i].1;
-        match ask::relevance(links, &self.ask) {
+        let links: Vec<Link> = self.view.iter().map(|(_, l)| l.clone()).collect();
+        match ask::relevance(&links, &self.ask) {
             Ok(scores) => {
                 for (link, s) in links.iter().zip(&scores) {
                     self.scores.insert(link.url.clone(), *s);
                 }
                 let score = |l: &Link| self.scores.get(&l.url).copied().unwrap_or(0.0);
-                let before = links.len();
-                links.retain(|l| score(l) >= min_score);
-                links.sort_by(|a, b| score(b).total_cmp(&score(a)));
-                let hits = links.len();
+                let before = self.view.len();
+                self.view.retain(|(_, l)| score(l) >= min_score);
+                self.view.sort_by(|(_, a), (_, b)| score(b).total_cmp(&score(a)));
+                let hits = self.view.len();
                 self.link.select((hits > 0).then_some(0));
                 self.on_links = hits > 0;
                 self.status = format!("jev: 「{}」に合う順  {hits}/{before} 件（{min_score} 以上、Esc で戻す）", self.ask);
@@ -84,24 +137,15 @@ impl App {
         }
     }
 
-    fn links(&self) -> &[Link] {
-        self.day.selected().and_then(|i| self.days.get(i)).map_or(&[], |d| &d.1)
-    }
-
     fn current(&self) -> Option<&Link> {
-        self.link.selected().and_then(|i| self.links().get(i))
-    }
-
-    fn select_day(&mut self, i: usize) {
-        self.day.select(Some(i.min(self.days.len().saturating_sub(1))));
-        self.link.select(if self.links().is_empty() { None } else { Some(0) });
+        self.link.selected().and_then(|i| self.view.get(i)).map(|(_, l)| l)
     }
 
     fn step(&mut self, down: bool) {
         let (cur, len) = if self.on_links {
-            (self.link.selected(), self.links().len())
+            (self.link.selected(), self.view.len())
         } else {
-            (self.day.selected(), self.days.len())
+            (self.row.selected(), self.rows.len())
         };
         if len == 0 {
             return;
@@ -111,7 +155,7 @@ impl App {
         if self.on_links {
             self.link.select(Some(i));
         } else {
-            self.select_day(i);
+            self.select(&self.label(&self.rows[i]));
         }
     }
 }
@@ -127,13 +171,26 @@ fn draw(f: &mut Frame, app: &mut App) {
     let focus = |on: bool| Style::default().fg(if on { Color::Cyan } else { Color::DarkGray });
     let hl = Style::default().add_modifier(Modifier::REVERSED);
 
-    let days = List::new(app.days.iter().map(|(d, l)| format!("{d} {:>4}", l.len())))
-        .block(Block::bordered().title("日").border_style(focus(!app.on_links)))
-        .highlight_style(hl);
-    f.render_stateful_widget(days, left, &mut app.day);
+    let rows = List::new(app.rows.iter().map(|r| match r {
+        Row::Month(m) => {
+            let n: usize = app.days.iter().filter(|(d, _)| d.starts_with(m.as_str())).map(|(_, l)| l.len()).sum();
+            Line::styled(format!("{m} {n:>7}"), Style::default().add_modifier(Modifier::BOLD))
+        }
+        Row::Day(i) => {
+            let (d, l) = &app.days[*i];
+            Line::raw(format!("  {} {:>7}", &d[5..], l.len()))
+        }
+    }))
+    .block(Block::bordered().title("月・日").border_style(focus(!app.on_links)))
+    .highlight_style(hl);
+    f.render_stateful_widget(rows, left, &mut app.row);
 
-    let links = List::new(app.links().iter().map(|l| {
+    let month = app.on_month();
+    let links = List::new(app.view.iter().map(|(d, l)| {
         let mut spans = Vec::new();
+        if month {
+            spans.push(Span::styled(format!("{} ", &d[5..]), Style::default().fg(Color::Cyan)));
+        }
         if let Some(s) = app.scores.get(&l.url) {
             spans.push(Span::styled(format!("{s:.2} "), Style::default().fg(Color::Green)));
         }
@@ -163,11 +220,13 @@ pub fn run(mut cfg: Config, path: &Path, days: Days) -> Result<(), Box<dyn Error
     let mut app = App {
         all: days.into_iter().rev().collect(),
         days: Vec::new(),
+        rows: Vec::new(),
+        view: Vec::new(),
         query: String::new(),
         ask: String::new(),
         input: Input::None,
         scores: HashMap::new(),
-        day: ListState::default(),
+        row: ListState::default(),
         link: ListState::default(),
         on_links: false,
         status: "j/k 移動  h/l 切替  / 検索  ? jev で検索  Enter 開く  x このホストを除外  q 終了".into(),
@@ -211,7 +270,7 @@ pub fn run(mut cfg: Config, path: &Path, days: Days) -> Result<(), Box<dyn Error
                     app.refilter();
                 } else if key.code == KeyCode::Enter && !app.ask.trim().is_empty() {
                     // ponytail: 待っている間は画面が止まる。遅くて困るならスレッドに出す
-                    app.status = format!("jev に聞いている…（{} ページ）", app.links().len());
+                    app.status = format!("jev に聞いている…（{} ページ）", app.view.len());
                     term.draw(|f| draw(f, &mut app))?;
                     app.rank(cfg.min_score);
                 }
