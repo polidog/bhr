@@ -23,7 +23,7 @@ When testing against real history, pass `--config <scratch path>` so the user's
 - `src/config.rs` — `Config` (TOML), `normalize()` (URL cleanup + all filtering), `allowed()`, `add_deny()` (edits TOML with `toml_edit` to keep comments)
 - `src/history.rs` — find profiles, copy `History` to temp, query SQLite, dedupe per day, Markdown `render()`
 - `src/tui.rs` — ratatui two-pane UI (days / pages); `/` text filter, `?` semantic ranking
-- `src/ask.rs` — `relevance()`: one Jev `noul` request per page via the `jev` crate (git dep on polidog/jev, pinned rev), provider from `JEV_PROVIDER`
+- `src/ask.rs` — `relevance()`: one Jev `noul` request per page via the `jev` crate (crates.io `polidog-jev`, renamed to `jev` in Cargo.toml), provider from `JEV_PROVIDER`
 - `src/default_config.toml` — written to the config path on first run; also used by tests
 
 ## Rules

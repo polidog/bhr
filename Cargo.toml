@@ -7,7 +7,7 @@ edition = "2024"
 clap = { version = "4.6.7", features = ["derive"] }
 crossterm = "0.28"
 indexmap = "2.14.2"
-jev = { git = "https://github.com/polidog/jev", rev = "b8835e4", version = "0.1.0" }
+jev = { package = "polidog-jev", version = "0.1.0" }
 ratatui = "0.29"
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }

@@ -83,7 +83,7 @@ dependencies = [
  "clap",
  "crossterm",
  "indexmap",
- "jev",
+ "polidog-jev",
  "ratatui",
  "rusqlite",
  "serde",
@@ -634,19 +634,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
-name = "jev"
-version = "0.1.0"
-source = "git+https://github.com/polidog/jev?rev=b8835e4#b8835e48c09860894e2c98451c8c8200cb85bed7"
-dependencies = [
- "anyhow",
- "clap",
- "indexmap",
- "serde",
- "serde_json",
- "ureq",
-]
-
-[[package]]
 name = "js-sys"
 version = "0.3.106"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -801,6 +788,20 @@ name = "pkg-config"
 version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
+
+[[package]]
+name = "polidog-jev"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "657da3cbea8c0a153f699da9d39698e84f42af07cb1d4664c779bfc020dcb9f7"
+dependencies = [
+ "anyhow",
+ "clap",
+ "indexmap",
+ "serde",
+ "serde_json",
+ "ureq",
+]
 
 [[package]]
 name = "potential_utf"
